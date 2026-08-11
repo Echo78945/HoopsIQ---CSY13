@@ -16,6 +16,13 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI questionText;
     public TextMeshProUGUI feedbackText;
 
+    [Header("Timer")]
+    public TextMeshProUGUI timerText;
+    public float answerTime = 5f;
+
+    private float currentTime;
+    private bool timerRunning = false;
+
     [Header("Scenario Data")]
     public Scenario[] scenarios;
     private int currentScenario = 0;
@@ -59,6 +66,27 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+
+        // TIMER
+        if (timerRunning)
+        {
+            currentTime -= Time.deltaTime;
+
+            timerText.text = Mathf.Ceil(currentTime).ToString();
+
+            if (currentTime <= 0)
+            {
+                timerRunning = false;
+
+                feedbackText.text = "Time's up!";
+
+                actionInProgress = true;
+
+                StartCoroutine(TimeOut());
+            }
+        }
+
+
         // DRIVE movement
         if (isDriving)
         {
@@ -137,6 +165,11 @@ public class GameManager : MonoBehaviour
     {
         questionText.text = scenarios[currentScenario].question;
         feedbackText.text = "";
+
+        currentTime = answerTime;
+        timerRunning = true;
+
+        timerText.text = currentTime.ToString("F0");
     }
 
     public void MakeDecision(string choice)
@@ -176,6 +209,9 @@ public class GameManager : MonoBehaviour
         {
             questionText.text = "Game Complete!";
             feedbackText.text = "Great job!";
+
+            timerRunning = false;
+            timerText.text = "";
         }
 
         ResetPositions();
@@ -187,6 +223,7 @@ public class GameManager : MonoBehaviour
     public void ChooseDrive()
     {
         if (actionInProgress) return;
+        timerRunning = false;
 
         CheckAnswer("Drive");
 
@@ -201,6 +238,7 @@ public class GameManager : MonoBehaviour
     public void ChooseShoot()
     {
         if (actionInProgress) return;
+        timerRunning = false;
 
         CheckAnswer("Shoot");
 
@@ -217,6 +255,7 @@ public class GameManager : MonoBehaviour
     public void ChoosePass()
     {
         if (actionInProgress) return;
+        timerRunning = false;
 
         CheckAnswer("Pass");
 
@@ -236,9 +275,46 @@ public class GameManager : MonoBehaviour
 
         ResetPositions();
 
-        actionInProgress = false;
+        currentScenario++;
 
-        feedbackText.text = "";
+        if (currentScenario < scenarios.Length)
+        {
+            LoadScenario();
+        }
+        else
+        {
+            questionText.text = "Game Complete!";
+            feedbackText.text = "Great job!";
+            timerRunning = false;
+            timerText.text = "";
+            yield break;
+        }
+
+        actionInProgress = false;
+    }
+
+    IEnumerator TimeOut()
+    {
+        yield return new WaitForSeconds(3f);
+
+        ResetPositions();
+
+        currentScenario++;
+
+        if (currentScenario < scenarios.Length)
+        {
+            LoadScenario();
+        }
+        else
+        {
+            questionText.text = "Game Complete!";
+            feedbackText.text = "Great job!";
+            timerRunning = false;
+            timerText.text = "";
+            yield break;
+        }
+
+        actionInProgress = false;
     }
 
     bool isCorrectDecision = false;
@@ -249,14 +325,17 @@ public class GameManager : MonoBehaviour
 
         if (!isCorrectDecision)
         {
-            feedbackText.text = "Wrong decision!";
+            timerRunning = false;
             actionInProgress = true;
 
-            // Stop everything
+            feedbackText.text = "Wrong decision!";
+
             isDriving = false;
             isShooting = false;
             isPassing = false;
             teammateShooting = false;
+
+            StartCoroutine(ResetAfterDelay(3f));
         }
     }
 }
