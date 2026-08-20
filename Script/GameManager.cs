@@ -18,14 +18,25 @@ public class GameManager : MonoBehaviour
 
     [Header("Timer")]
     public TextMeshProUGUI timerText;
-    public float answerTime = 5f;
 
+    public float easyTime = 8f;
+    public float mediumTime = 5f;
+    public float hardTime = 3f;
+
+    private float answerTime;
     private float currentTime;
     private bool timerRunning = false;
+
+    [Header("Difficulty")]
+    public GameObject difficultyPanel;
 
     [Header("Scenario Data")]
     public Scenario[] scenarios;
     private int currentScenario = 0;
+
+    [Header("Score")]
+    public int score = 0;
+    public TextMeshProUGUI scoreText;
 
     [Header("Movement")]
     public Transform player;
@@ -35,25 +46,80 @@ public class GameManager : MonoBehaviour
     public Transform passTarget;
     public Transform receivePoint;
 
+    public Transform defender;
+    public Transform defenderShootTarget;
+    public Transform defenderDriveTarget;
+
+    public Transform driveAroundTarget;
+
     public float moveSpeed = 5f;
     public float shootSpeed = 8f;
     public float passSpeed = 10f;
 
     private bool isDriving = false;
+    private bool isDrivingAround = false;
     private bool isShooting = false;
     private bool isPassing = false;
     private bool teammateShooting = false;
     private bool actionInProgress = false;
 
+    private bool isDefenderClosing = false;
+    private Transform defenderTarget;
+
     private Vector3 playerStartPosition;
     private Vector3 ballStartPosition;
+    private Vector3 defenderStartPosition;
 
-    
-    
+
     void Start()
     {
         playerStartPosition = player.position;
         ballStartPosition = ball.position;
+        defenderStartPosition = defender.position;
+
+        difficultyPanel.SetActive(true);
+
+        questionText.gameObject.SetActive(false);
+        timerText.gameObject.SetActive(false);
+        feedbackText.gameObject.SetActive(false);
+    }
+
+    // DIFFICULTY BUTTONS
+
+    public void StartEasy()
+    {
+        answerTime = easyTime;
+        StartGame();
+    }
+
+    public void StartMedium()
+    {
+        answerTime = mediumTime;
+        StartGame();
+    }
+
+    public void StartHard()
+    {
+        answerTime = hardTime;
+        StartGame();
+    }
+
+    void StartGame()
+    {
+        difficultyPanel.SetActive(false);
+
+        questionText.gameObject.SetActive(true);
+        timerText.gameObject.SetActive(true);
+        feedbackText.gameObject.SetActive(true);
+
+        currentScenario = 0;
+
+        score = 0;
+
+        if (scoreText != null)
+        {
+            scoreText.text = "Score: 0";
+        }
 
         LoadScenario();
     }
@@ -62,6 +128,9 @@ public class GameManager : MonoBehaviour
     {
         player.position = playerStartPosition;
         ball.position = ballHoldPoint.position;
+        defender.position = defenderStartPosition;
+
+        isDefenderClosing = false;
     }
 
     void Update()
@@ -87,7 +156,31 @@ public class GameManager : MonoBehaviour
         }
 
 
-        // DRIVE movement
+        // DRIVE MOVEMENT
+        if (isDrivingAround)
+        {
+            player.position = Vector2.MoveTowards(
+                player.position,
+                driveAroundTarget.position,
+                moveSpeed * Time.deltaTime
+            );
+
+            // Ball follows player's hand
+            ball.position = ballHoldPoint.position;
+
+            // Once player reaches the target around defender
+            if (Vector2.Distance(
+                player.position,
+                driveAroundTarget.position
+            ) < 0.1f)
+            {
+                player.position = driveAroundTarget.position;
+
+                isDrivingAround = false;
+                isDriving = true;
+            }
+        }
+
         if (isDriving)
         {
             player.position = Vector2.MoveTowards(
@@ -96,13 +189,18 @@ public class GameManager : MonoBehaviour
                 moveSpeed * Time.deltaTime
             );
 
-            // Ball follows player
+            // Ball follows player's hand
             ball.position = ballHoldPoint.position;
 
-            // Stop when close to hoop
-            if (Vector2.Distance(player.position, hoopTarget.position) < 0.1f)
+            if (Vector2.Distance(
+                player.position,
+                hoopTarget.position
+            ) < 0.1f)
             {
+                player.position = hoopTarget.position;
+
                 isDriving = false;
+
                 feedbackText.text = "Nice finish at the rim!";
 
                 StartCoroutine(ResetAfterDelay(3f));
@@ -157,6 +255,24 @@ public class GameManager : MonoBehaviour
                 feedbackText.text = "Great pass! SCORE!";
 
                 StartCoroutine(ResetAfterDelay(3f));
+            }
+        }
+
+        // DEFENDER CLOSEOUT
+        if (isDefenderClosing)
+        {
+            defender.position = Vector2.MoveTowards(
+                defender.position,
+                defenderTarget.position,
+                moveSpeed * Time.deltaTime
+            );
+
+            if (Vector2.Distance(
+                defender.position,
+                defenderTarget.position
+            ) < 0.1f)
+            {
+                isDefenderClosing = false;
             }
         }
     }
@@ -223,6 +339,7 @@ public class GameManager : MonoBehaviour
     public void ChooseDrive()
     {
         if (actionInProgress) return;
+
         timerRunning = false;
 
         CheckAnswer("Drive");
@@ -230,14 +347,22 @@ public class GameManager : MonoBehaviour
         if (!isCorrectDecision) return;
 
         actionInProgress = true;
+
         feedbackText.text = "Driving to the basket!";
-        isDriving = true;
+
+        // Player goes around defender first
+        isDrivingAround = true;
+
+        // Defender over-commits
+        defenderTarget = defenderDriveTarget;
+        isDefenderClosing = true;
     }
 
     // 🏀 SHOOT BUTTON 
     public void ChooseShoot()
     {
         if (actionInProgress) return;
+
         timerRunning = false;
 
         CheckAnswer("Shoot");
@@ -245,10 +370,17 @@ public class GameManager : MonoBehaviour
         if (!isCorrectDecision) return;
 
         actionInProgress = true;
+
         feedbackText.text = "Shot taken!";
+
+        // Ball shoots
         isShooting = true;
 
         ball.position = ballHoldPoint.position;
+
+        // Defender gives the shooter space
+        defenderTarget = defenderShootTarget;
+        isDefenderClosing = true;
     }
 
     // 🏀 PASS BUTTON 
@@ -323,12 +455,20 @@ public class GameManager : MonoBehaviour
     {
         isCorrectDecision = (chosenAction == scenarios[currentScenario].correctAnswer);
 
-        if (!isCorrectDecision)
+        if (isCorrectDecision)
         {
+            score += 1;
+
+            if (scoreText != null)
+            {
+                scoreText.text = "Score: " + score;
+            }
+        }
+        else
+        {
+            feedbackText.text = "Wrong decision!";
             timerRunning = false;
             actionInProgress = true;
-
-            feedbackText.text = "Wrong decision!";
 
             isDriving = false;
             isShooting = false;
