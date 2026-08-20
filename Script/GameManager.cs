@@ -478,4 +478,5 @@ public class GameManager : MonoBehaviour
             StartCoroutine(ResetAfterDelay(3f));
         }
     }
+    iwhvineibvuaiwhiwajd
 }
