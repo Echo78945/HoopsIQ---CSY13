@@ -478,4 +478,9 @@ public class GameManager : MonoBehaviour
             StartCoroutine(ResetAfterDelay(3f));
         }
     }
+
+    public void QuitGame()
+    {
+        Application.Quit();
+    }
 }
