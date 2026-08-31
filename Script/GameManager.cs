@@ -299,11 +299,12 @@ public class GameManager : MonoBehaviour
     {
         questionText.text = scenarios[currentScenario].question;
         feedbackText.text = "";
-
+    
         currentTime = answerTime;
         timerRunning = true;
-
+    
         timerText.text = currentTime.ToString("F0");
+        timerText.color = normalTimerColor;
     }
 
     public void MakeDecision(string choice)
