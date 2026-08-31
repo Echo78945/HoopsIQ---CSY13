@@ -140,17 +140,35 @@ public class GameManager : MonoBehaviour
         if (timerRunning)
         {
             currentTime -= Time.deltaTime;
-
+        
             timerText.text = Mathf.Ceil(currentTime).ToString();
-
+        
+            // Change timer colour based on remaining time
+            if (currentTime <= 1f)
+            {
+                timerText.color = dangerTimerColor;
+            }
+            else if (currentTime <= 2f)
+            {
+                timerText.color = warningTimerColor;
+            }
+            else
+            {
+                timerText.color = normalTimerColor;
+            }
+        
             if (currentTime <= 0)
             {
                 timerRunning = false;
-
+                currentTime = 0;
+        
+                timerText.text = "0";
+                timerText.color = dangerTimerColor;
+        
                 feedbackText.text = "Time's up!";
-
+        
                 actionInProgress = true;
-
+        
                 StartCoroutine(TimeOut());
             }
         }
