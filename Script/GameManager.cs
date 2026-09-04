@@ -67,6 +67,7 @@ public class GameManager : MonoBehaviour
 
     private bool isDriving = false;
     private bool isDrivingAround = false;
+    private bool defenderFinishedCloseout = false;
     private bool isShooting = false;
     private bool isPassing = false;
     private bool teammateShooting = false;
@@ -300,7 +301,15 @@ public class GameManager : MonoBehaviour
                 defenderTarget.position
             ) < 0.1f)
             {
+                defender.position = defenderTarget.position;
+
                 isDefenderClosing = false;
+                defenderFinishedCloseout = true;
+
+                // Now the player starts driving
+                isDrivingAround = true;
+
+                feedbackText.text = "Driving to the basket!";
             }
         }
     }
@@ -379,14 +388,14 @@ public class GameManager : MonoBehaviour
 
         actionInProgress = true;
 
-        feedbackText.text = "Driving to the basket!";
+        feedbackText.text = "Defender is closing out!";
 
-        // Player goes around defender first
-        isDrivingAround = true;
-
-        // Defender over-commits
+        // Start defender closeout first
         defenderTarget = defenderDriveTarget;
         isDefenderClosing = true;
+
+        // Player waits
+        defenderFinishedCloseout = false;
     }
 
     // 🏀 SHOOT BUTTON 
