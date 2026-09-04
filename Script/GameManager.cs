@@ -23,9 +23,18 @@ public class GameManager : MonoBehaviour
     public float mediumTime = 5f;
     public float hardTime = 3f;
 
+    public Color normalTimerColor = Color.white;
+    public Color warningTimerColor = Color.yellow;
+    public Color dangerTimerColor = Color.red;
+
     private float answerTime;
     private float currentTime;
     private bool timerRunning = false;
+
+    [Header("Feedback Colors")]
+    public Color normalFeedbackColor = Color.white;
+    public Color correctFeedbackColor = Color.green;
+    public Color wrongFeedbackColor = Color.red;
 
     [Header("Difficulty")]
     public GameObject difficultyPanel;
@@ -140,9 +149,9 @@ public class GameManager : MonoBehaviour
         if (timerRunning)
         {
             currentTime -= Time.deltaTime;
-        
+
             timerText.text = Mathf.Ceil(currentTime).ToString();
-        
+
             // Change timer colour based on remaining time
             if (currentTime <= 1f)
             {
@@ -156,19 +165,20 @@ public class GameManager : MonoBehaviour
             {
                 timerText.color = normalTimerColor;
             }
-        
+
             if (currentTime <= 0)
             {
                 timerRunning = false;
                 currentTime = 0;
-        
+
                 timerText.text = "0";
                 timerText.color = dangerTimerColor;
-        
+
                 feedbackText.text = "Time's up!";
-        
+                feedbackText.color = wrongFeedbackColor;
+
                 actionInProgress = true;
-        
+
                 StartCoroutine(TimeOut());
             }
         }
@@ -240,7 +250,7 @@ public class GameManager : MonoBehaviour
 
                 StartCoroutine(ResetAfterDelay(3f));
             }
-        }   
+        }
 
         if (isPassing)
         {
@@ -299,10 +309,12 @@ public class GameManager : MonoBehaviour
     {
         questionText.text = scenarios[currentScenario].question;
         feedbackText.text = "";
-    
+
+        feedbackText.color = normalFeedbackColor;
+
         currentTime = answerTime;
         timerRunning = true;
-    
+
         timerText.text = currentTime.ToString("F0");
         timerText.color = normalTimerColor;
     }
@@ -482,10 +494,14 @@ public class GameManager : MonoBehaviour
             {
                 scoreText.text = "Score: " + score;
             }
+
+            feedbackText.color = correctFeedbackColor;
         }
         else
         {
             feedbackText.text = "Wrong decision!";
+            feedbackText.color = wrongFeedbackColor;
+
             timerRunning = false;
             actionInProgress = true;
 
